@@ -35,8 +35,27 @@ const getAllData = async () => {
     try {
         const poolConnection = await ConnectionPool.getConnection();
         const query = await poolConnection.query(
-        `SELECT books_id, title, synopsis, publisher, category_id FROM books WHERE is_deleted=0;`
-        );
+            `SELECT 
+                books.books_id AS "books_id",
+                books.title AS "title", 
+                books.synopsis AS "synopsis",
+                books.publisher AS "publisher",
+                CONCAT( '[', 
+                    GROUP_CONCAT( 
+                        CONCAT( '{ "author_id": ', author.author_id, ', "first_name": "', author.author_name,'" }' ) ORDER BY author.author_id
+                            SEPARATOR ',' ),
+                ']' ) AS "author",
+                category.category_name AS "category_name"
+                FROM books 
+                LEFT JOIN book_author 
+                ON books.books_id = book_author.books_id 
+                LEFT JOIN author 
+                ON book_author.author_id = author.author_id 
+                LEFT JOIN category 
+                ON books.category_id = category.category_id 
+                WHERE books.is_deleted=0
+                GROUP BY books.books_id, books.title, books.synopsis, books.publisher, category.category_name`
+                );
 
         await poolConnection.connection.release();
         const result = __constructQueryResult(query);
@@ -54,7 +73,26 @@ const getDataById = async (id) => {
     try{
         const poolConnection = await ConnectionPool.getConnection();
         const query = await poolConnection.query(
-        `SELECT books_id, title, synopsis, publisher, category_id FROM books WHERE books_id=${id} && is_deleted=0;`
+        `SELECT 
+        books.books_id AS "books_id",
+        books.title AS "title", 
+        books.synopsis AS "synopsis",
+        books.publisher AS "publisher",
+        CONCAT( '[', 
+            GROUP_CONCAT( 
+                CONCAT( '{ "author_id": ', author.author_id, ', "first_name": "', author.author_name,'" }' ) ORDER BY author.author_id
+                    SEPARATOR ',' ),
+        ']' ) AS "author",
+        category.category_name AS "category_name"
+        FROM books 
+        LEFT JOIN book_author 
+        ON books.books_id = book_author.books_id 
+        LEFT JOIN author 
+        ON book_author.author_id = author.author_id 
+        LEFT JOIN category 
+        ON books.category_id = category.category_id 
+        WHERE books.is_deleted=0 AND books.books_id=${id}
+        GROUP BY books.books_id, books.title, books.synopsis, books.publisher, category.category_name;`
         );
 
         await poolConnection.connection.release();
@@ -133,6 +171,10 @@ const deleteBook = async (id) => {
         return Promise.resolve([]);
     }
 }
+
+// category
+// SELECT books.title, category.category_name FROM books LEFT JOIN category ON books.category_id = category.category_id
+//SELECT books.title, author.author_name FROM books INNER JOIN book_author ON books.books_id = book_author.books_id INNER JOIN author ON book_author.author_id = author.author_id WHERE books.books_id=10
 
 module.exports = {
     getAllData,

@@ -6,7 +6,7 @@ const bookHelper = require('../helper/booksHelper');
 const getAllBook = async (req, res) => {
     try {
         const response = await bookHelper.getAllBook();
-        return res.status(200).json({ message: "Success get detail book", status: 200, data: response });
+        return res.status(200).json({ message: "Success get all book", status: 200, data: response });
     } catch (err) {
         console.log(err.message, "<<error")
     }
